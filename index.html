@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="KGO Deadlines">
+<title>KGO Production Deadlines</title>
+<style>
+  :root {
+    --overdue: #dc2626;
+    --this-week: #ea580c;
+    --next-week: #d97706;
+    --three-weeks: #ca8a04;
+    --five-weeks: #65a30d;
+    --seven-weeks: #16a34a;
+    --recent: #2563eb;
+    --status-special: #dc2626;
+    --status-assigned: #2563eb;
+    --status-reassign: #ea580c;
+    --status-completed: #16a34a;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f172a;
+    color: #f8fafc;
+    min-height: 100vh;
+  }
+
+  header {
+    background: #1e293b;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #334155;
+  }
+
+  header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+
+  .refresh-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .refresh-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #16a34a;
+  }
+
+  .refresh-dot.loading {
+    background: #d97706;
+    animation: pulse 1s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .board {
+    display: flex;
+    gap: 12px;
+    padding: 16px;
+    overflow-x: auto;
+    min-height: calc(100vh - 70px);
+    align-items: flex-start;
+  }
+
+  .column {
+    min-width: 260px;
+    flex: 1;
+    background: #1e293b;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 90px);
+  }
+
+  .column-header {
+    padding: 12px 16px;
+    font-weight: 700;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .column-header .count {
+    background: rgba(255,255,255,0.15);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .column[data-col="overdue"] .column-header { background: var(--overdue); }
+  .column[data-col="this-week"] .column-header { background: var(--this-week); }
+  .column[data-col="next-week"] .column-header { background: var(--next-week); }
+  .column[data-col="three-weeks"] .column-header { background: var(--three-weeks); }
+  .column[data-col="five-weeks"] .column-header { background: var(--five-weeks); }
+  .column[data-col="seven-weeks"] .column-header { background: var(--seven-weeks); }
+  .column[data-col="recent"] .column-header { background: var(--recent); }
+
+  .column-cards {
+    padding: 8px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .card {
+    background: #f8fafc;
+    color: #1e293b;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    transition: transform 0.15s;
+  }
+
+  .card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+  }
+
+  .card-name {
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 4px;
+    color: #0f172a;
+  }
+
+  .card-description {
+    font-size: 0.85rem;
+    color: #475569;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .card-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #64748b;
+    margin-bottom: 6px;
+  }
+
+  .card-date {
+    font-weight: 600;
+  }
+
+  .card-price {
+    font-weight: 600;
+  }
+
+  .status-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #fff;
+  }
+
+  .status-tag[data-status="special attn"] { background: var(--status-special); }
+  .status-tag[data-status="assigned"] { background: var(--status-assigned); }
+  .status-tag[data-status="to reassign"] { background: var(--status-reassign); }
+  .status-tag[data-status="completed"] { background: var(--status-completed); }
+
+  .card.completed {
+    opacity: 0.5;
+  }
+
+  .error-banner {
+    background: #7f1d1d;
+    color: #fecaca;
+    padding: 12px 24px;
+    text-align: center;
+    display: none;
+    font-size: 0.9rem;
+  }
+
+  .empty-state {
+    color: #64748b;
+    text-align: center;
+    padding: 24px 12px;
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  /* Mobile */
+  @media (max-width: 768px) {
+    header { padding: 12px 16px; }
+    header h1 { font-size: 1.2rem; }
+
+    .board {
+      flex-direction: column;
+      padding: 8px;
+      gap: 8px;
+      overflow-x: visible;
+    }
+
+    .column {
+      min-width: 100%;
+      max-height: none;
+    }
+
+    .column.empty-column {
+      display: none;
+    }
+
+    .column-cards {
+      overflow-y: visible;
+    }
+  }
+
+  /* Large screen / TV */
+  @media (min-width: 1600px) {
+    .card-name { font-size: 1.15rem; }
+    .card-description { font-size: 0.95rem; }
+    .card-meta { font-size: 0.9rem; }
+    .column-header { font-size: 1.05rem; padding: 14px 18px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>KGO Production Deadlines</h1>
+  <div class="header-right">
+    <div class="refresh-indicator">
+      <div class="refresh-dot" id="statusDot"></div>
+      <span id="lastUpdate">Loading...</span>
+    </div>
+    <button onclick="fetchData()" style="background:#334155;border:none;color:#f8fafc;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:0.8rem;">Refresh</button>
+  </div>
+</header>
+
+<div class="error-banner" id="errorBanner"></div>
+
+<div class="board" id="board">
+  <div class="column" data-col="overdue">
+    <div class="column-header">Overdue <span class="count" id="count-overdue">0</span></div>
+    <div class="column-cards" id="cards-overdue"></div>
+  </div>
+  <div class="column" data-col="this-week">
+    <div class="column-header">This Week <span class="count" id="count-this-week">0</span></div>
+    <div class="column-cards" id="cards-this-week"></div>
+  </div>
+  <div class="column" data-col="next-week">
+    <div class="column-header">Next Week <span class="count" id="count-next-week">0</span></div>
+    <div class="column-cards" id="cards-next-week"></div>
+  </div>
+  <div class="column" data-col="three-weeks">
+    <div class="column-header">3 Weeks <span class="count" id="count-three-weeks">0</span></div>
+    <div class="column-cards" id="cards-three-weeks"></div>
+  </div>
+  <div class="column" data-col="five-weeks">
+    <div class="column-header">5 Weeks <span class="count" id="count-five-weeks">0</span></div>
+    <div class="column-cards" id="cards-five-weeks"></div>
+  </div>
+  <div class="column" data-col="seven-weeks">
+    <div class="column-header">7 Weeks <span class="count" id="count-seven-weeks">0</span></div>
+    <div class="column-cards" id="cards-seven-weeks"></div>
+  </div>
+  <div class="column" data-col="recent">
+    <div class="column-header">Recent Orders <span class="count" id="count-recent">0</span></div>
+    <div class="column-cards" id="cards-recent"></div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '1mJCIz-bDeqJiIxlrLKwahGOH4HSxvSPelLgJJNg4HN4';
+const REFRESH_MS = 3 * 60 * 1000; // 3 minutes
+
+// Use Google Visualization API with JSONP — works from local file:// without CORS issues
+// param can be { gid: 0 } or { sheet: 'Production Status' }
+function loadSheetJSONP(param) {
+  return new Promise((resolve, reject) => {
+    const callbackName = '_gvizCb_' + Math.random().toString(36).slice(2);
+    const timeout = setTimeout(() => {
+      delete window[callbackName];
+      script.remove();
+      reject(new Error('Timeout loading sheet'));
+    }, 15000);
+
+    window[callbackName] = function(response) {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      script.remove();
+      if (response.status === 'error') {
+        reject(new Error(response.errors.map(e => e.message).join(', ')));
+      } else {
+        resolve(response);
+      }
+    };
+
+    const sheetParam = param.gid !== undefined
+      ? `gid=${param.gid}`
+      : `sheet=${encodeURIComponent(param.sheet)}`;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&${sheetParam}`;
+    const script = document.createElement('script');
+    script.src = url;
+    script.onerror = () => {
+      clearTimeout(timeout);
+      delete window[callbackName];
+      reject(new Error('Network error loading sheet'));
+    };
+    document.head.appendChild(script);
+  });
+}
+
+// Parse a gviz date value like "Date(2026,2,27)" — month is 0-indexed
+function parseGvizDate(cell) {
+  if (!cell || cell.v === null || cell.v === undefined) return null;
+  const v = cell.v;
+  if (typeof v === 'string' && v.startsWith('Date(')) {
+    const parts = v.replace('Date(', '').replace(')', '').split(',').map(Number);
+    return new Date(parts[0], parts[1], parts[2]);
+  }
+  return null;
+}
+
+function startOfDay(d) {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
+function startOfWeek(d) {
+  const day = d.getDay(); // 0=Sun
+  const diff = d.getDate() - day;
+  return new Date(d.getFullYear(), d.getMonth(), diff);
+}
+
+function classifyOrder(targetDate, saleDate) {
+  const today = startOfDay(new Date());
+  const target = startOfDay(targetDate);
+  const diffDays = Math.round((target - today) / (1000 * 60 * 60 * 24));
+
+  // Check if it's a recent order (within 7 days of sale date)
+  if (saleDate) {
+    const sale = startOfDay(saleDate);
+    const daysSinceSale = Math.round((today - sale) / (1000 * 60 * 60 * 24));
+    if (daysSinceSale <= 7 && diffDays > 49) {
+      return 'recent';
+    }
+  }
+
+  if (diffDays < 0) return 'overdue';
+
+  const weekStart = startOfWeek(today);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+
+  const nextWeekEnd = new Date(weekEnd);
+  nextWeekEnd.setDate(nextWeekEnd.getDate() + 7);
+
+  if (target <= weekEnd) return 'this-week';
+  if (target <= nextWeekEnd) return 'next-week';
+  if (diffDays <= 21) return 'three-weeks';
+  if (diffDays <= 35) return 'five-weeks';
+  if (diffDays <= 49) return 'seven-weeks';
+
+  return 'recent';
+}
+
+function createCard(order) {
+  const card = document.createElement('div');
+  card.className = 'card' + (order.status && order.status.toLowerCase() === 'completed' ? ' completed' : '');
+
+  const statusHTML = order.status
+    ? `<div><span class="status-tag" data-status="${order.status.toLowerCase()}">${order.status}</span></div>`
+    : '';
+
+  const dateStr = order.targetDate
+    ? order.targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '';
+
+  card.innerHTML = `
+    <div class="card-name">${escapeHTML(order.name)}</div>
+    <div class="card-description">${escapeHTML(order.description)}</div>
+    <div class="card-meta">
+      <span class="card-date">${dateStr}</span>
+      <span class="card-price">${escapeHTML(order.price)}</span>
+    </div>
+    ${statusHTML}
+  `;
+  return card;
+}
+
+function escapeHTML(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+async function fetchData() {
+  const dot = document.getElementById('statusDot');
+  const updateLabel = document.getElementById('lastUpdate');
+  const errorBanner = document.getElementById('errorBanner');
+
+  dot.classList.add('loading');
+  updateLabel.textContent = 'Updating...';
+
+  try {
+    // Load sales data from gid=0
+    const salesResponse = await loadSheetJSONP({ gid: 0 });
+    const table = salesResponse.table;
+    const cols = table.cols;
+
+    // Find column indices by label
+    const colIdx = (match) => cols.findIndex(c => c.label.toLowerCase().trim().includes(match));
+    const targetDateIdx = colIdx('target');
+    const saleDateIdx = colIdx('date of sale');
+    const nameIdx = cols.findIndex(c => c.label.toLowerCase().trim() === 'name');
+    const descIdx = 4; // Column E — description (label has long instructions text)
+    const priceIdx = colIdx('total sale');
+
+    if (targetDateIdx === -1) throw new Error('Could not find Target Date column');
+
+    // Load Production Status tab by name (fails gracefully if it doesn't exist yet)
+    let statusMap = {};
+    try {
+      const statusResp = await loadSheetJSONP({ sheet: 'Production Status' });
+      statusResp.table.rows.forEach(row => {
+        const idCell = row.c[0];
+        const statusCell = row.c[1];
+        if (idCell && idCell.v !== null) {
+          statusMap[String(Math.round(idCell.v)).trim()] = statusCell && statusCell.v ? String(statusCell.v).trim() : '';
+        }
+      });
+    } catch(e) { /* Status tab not found — that's fine */ }
+
+    const orders = [];
+    for (let i = 0; i < table.rows.length; i++) {
+      const row = table.rows[i];
+      const cells = row.c;
+
+      const targetDate = parseGvizDate(cells[targetDateIdx]);
+      if (!targetDate) continue; // Only show rows with a target date
+
+      const saleDate = parseGvizDate(cells[saleDateIdx]);
+      const rowNum = String(i + 2); // Sheet row number (1-indexed header + 1)
+
+      const nameCell = cells[nameIdx];
+      const descCell = cells[descIdx];
+      const priceCell = cells[priceIdx];
+
+      orders.push({
+        rowNum,
+        name: nameCell ? (nameCell.v || '') : '',
+        description: descCell ? (descCell.v || '') : '',
+        price: priceCell ? (priceCell.f || '') : '',
+        targetDate,
+        saleDate,
+        status: statusMap[rowNum] || '',
+        column: classifyOrder(targetDate, saleDate)
+      });
+    }
+
+    // Sort orders within each column by target date
+    orders.sort((a, b) => a.targetDate - b.targetDate);
+
+    // Clear and populate columns
+    const columns = ['overdue', 'this-week', 'next-week', 'three-weeks', 'five-weeks', 'seven-weeks', 'recent'];
+    columns.forEach(col => {
+      const container = document.getElementById(`cards-${col}`);
+      const countEl = document.getElementById(`count-${col}`);
+      container.innerHTML = '';
+
+      const colOrders = orders.filter(o => o.column === col);
+      // Push completed to the bottom
+      colOrders.sort((a, b) => {
+        const aComp = (a.status || '').toLowerCase() === 'completed' ? 1 : 0;
+        const bComp = (b.status || '').toLowerCase() === 'completed' ? 1 : 0;
+        if (aComp !== bComp) return aComp - bComp;
+        return a.targetDate - b.targetDate;
+      });
+
+      countEl.textContent = colOrders.length;
+
+      if (colOrders.length === 0) {
+        container.innerHTML = '<div class="empty-state">No orders</div>';
+      } else {
+        colOrders.forEach(order => container.appendChild(createCard(order)));
+      }
+
+      // Hide empty columns on mobile
+      const colEl = container.closest('.column');
+      colEl.classList.toggle('empty-column', colOrders.length === 0);
+    });
+
+    errorBanner.style.display = 'none';
+    dot.classList.remove('loading');
+    updateLabel.textContent = 'Updated ' + new Date().toLocaleTimeString();
+
+  } catch (err) {
+    dot.classList.remove('loading');
+    dot.style.background = '#dc2626';
+    updateLabel.textContent = 'Error';
+    errorBanner.textContent = 'Failed to load data: ' + err.message + '. Will retry in 3 minutes.';
+    errorBanner.style.display = 'block';
+    console.error(err);
+  }
+}
+
+// Initial load
+fetchData();
+
+// Auto-refresh
+setInterval(fetchData, REFRESH_MS);
+</script>
+
+</body>
+</html>
