@@ -466,6 +466,10 @@ async function fetchData() {
       const saleDate = parseGvizDate(cells[saleDateIdx]);
       const rowNum = String(i + 2); // Sheet row number (1-indexed header + 1)
 
+      // Skip shipped orders — they're done and off the board
+      const orderStatus = statusMap[rowNum] || '';
+      if (orderStatus.toLowerCase() === 'shipped') continue;
+
       const nameCell = cells[nameIdx];
       const descCell = cells[descIdx];
       const priceCell = cells[priceIdx];
