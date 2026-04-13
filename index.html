@@ -6,6 +6,9 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="KGO Deadlines">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>KGO Production Deadlines</title>
 <style>
   :root {
@@ -252,7 +255,7 @@
 <body>
 
 <header>
-  <h1>KGO Production Deadlines</h1>
+  <h1>KGO Production Deadlines <span style="font-size:0.55em;color:#64748b;font-weight:400;">v2</span></h1>
   <div class="header-right">
     <div class="refresh-indicator">
       <div class="refresh-dot" id="statusDot"></div>
@@ -299,7 +302,7 @@
 const SHEET_ID = '1mJCIz-bDeqJiIxlrLKwahGOH4HSxvSPelLgJJNg4HN4';
 const REFRESH_MS = 3 * 60 * 1000; // 3 minutes
 
-// Use Google Visualization API with JSONP — works from local file:// without CORS issues
+// Use Google Visualization API with JSONP ‚Äî works from local file:// without CORS issues
 // param can be { gid: 0 } or { sheet: 'Production Status' }
 function loadSheetJSONP(param) {
   return new Promise((resolve, reject) => {
@@ -324,7 +327,7 @@ function loadSheetJSONP(param) {
     const sheetParam = param.gid !== undefined
       ? `gid=${param.gid}`
       : `sheet=${encodeURIComponent(param.sheet)}`;
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&${sheetParam}`;
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=responseHandler:${callbackName}&${sheetParam}&_=${Date.now()}`;
     const script = document.createElement('script');
     script.src = url;
     script.onerror = () => {
@@ -336,7 +339,7 @@ function loadSheetJSONP(param) {
   });
 }
 
-// Parse a gviz date value like "Date(2026,2,27)" — month is 0-indexed
+// Parse a gviz date value like "Date(2026,2,27)" ‚Äî month is 0-indexed
 function parseGvizDate(cell) {
   if (!cell || cell.v === null || cell.v === undefined) return null;
   const v = cell.v;
@@ -437,7 +440,7 @@ async function fetchData() {
     const targetDateIdx = colIdx('target');
     const saleDateIdx = colIdx('date of sale');
     const nameIdx = cols.findIndex(c => c.label.toLowerCase().trim() === 'name');
-    const descIdx = 4; // Column E — description (label has long instructions text)
+    const descIdx = 4; // Column E ‚Äî description (label has long instructions text)
     const priceIdx = colIdx('total sale');
 
     if (targetDateIdx === -1) throw new Error('Could not find Target Date column');
@@ -453,7 +456,7 @@ async function fetchData() {
           statusMap[String(Math.round(idCell.v)).trim()] = statusCell && statusCell.v ? String(statusCell.v).trim() : '';
         }
       });
-    } catch(e) { /* Status tab not found — that's fine */ }
+    } catch(e) { /* Status tab not found ‚Äî that's fine */ }
 
     const orders = [];
     for (let i = 0; i < table.rows.length; i++) {
@@ -466,7 +469,7 @@ async function fetchData() {
       const saleDate = parseGvizDate(cells[saleDateIdx]);
       const rowNum = String(i + 2); // Sheet row number (1-indexed header + 1)
 
-      // Skip shipped orders — they're done and off the board
+      // Skip shipped orders ‚Äî they're done and off the board
       const orderStatus = statusMap[rowNum] || '';
       if (orderStatus.toLowerCase() === 'shipped') continue;
 
