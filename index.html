@@ -189,10 +189,11 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: #fff;
+    background: #475569; /* default gray for any custom status */
   }
 
   .status-tag[data-status="special attn"] { background: var(--status-special); }
-  .status-tag[data-status="assigned"] { background: var(--status-assigned); }
+  .status-tag[data-status^="assigned"] { background: var(--status-assigned); }
   .status-tag[data-status="to reassign"] { background: var(--status-reassign); }
   .status-tag[data-status="completed"] { background: var(--status-completed); }
 
@@ -255,7 +256,7 @@
 <body>
 
 <header>
-  <h1>KGO Production Deadlines <span style="font-size:0.55em;color:#64748b;font-weight:400;">v3</span></h1>
+  <h1>KGO Production Deadlines <span style="font-size:0.55em;color:#64748b;font-weight:400;">v4</span></h1>
   <div class="header-right">
     <div class="refresh-indicator">
       <div class="refresh-dot" id="statusDot"></div>
