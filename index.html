@@ -255,7 +255,7 @@
 <body>
 
 <header>
-  <h1>KGO Production Deadlines <span style="font-size:0.55em;color:#64748b;font-weight:400;">v2</span></h1>
+  <h1>KGO Production Deadlines <span style="font-size:0.55em;color:#64748b;font-weight:400;">v3</span></h1>
   <div class="header-right">
     <div class="refresh-indicator">
       <div class="refresh-dot" id="statusDot"></div>
@@ -448,7 +448,7 @@ async function fetchData() {
     // Load Production Status tab by name (fails gracefully if it doesn't exist yet)
     let statusMap = {};
     try {
-      const statusResp = await loadSheetJSONP({ sheet: 'Production Status' });
+      const statusResp = await loadSheetJSONP({ gid: 662572059 });
       statusResp.table.rows.forEach(row => {
         const idCell = row.c[0];
         const statusCell = row.c[1];
