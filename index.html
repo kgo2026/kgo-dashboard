@@ -19,10 +19,6 @@
     --five-weeks: #65a30d;
     --seven-weeks: #16a34a;
     --recent: #2563eb;
-    --status-special: #dc2626;
-    --status-assigned: #2563eb;
-    --status-reassign: #ea580c;
-    --status-completed: #16a34a;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -189,13 +185,8 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
     color: #fff;
-    background: #475569; /* default gray for any custom status */
+    /* background set dynamically by statusColor() in JS */
   }
-
-  .status-tag[data-status="special attn"] { background: var(--status-special); }
-  .status-tag[data-status^="assigned"] { background: var(--status-assigned); }
-  .status-tag[data-status="to reassign"] { background: var(--status-reassign); }
-  .status-tag[data-status="completed"] { background: var(--status-completed); }
 
   .card.completed {
     opacity: 0.5;
@@ -256,7 +247,7 @@
 <body>
 
 <header>
-  <h1>KGO Production Deadlines <span style="font-size:0.55em;color:#64748b;font-weight:400;">v4</span></h1>
+  <h1>KGO Production Deadlines <span style="font-size:0.55em;color:#64748b;font-weight:400;">v5</span></h1>
   <div class="header-right">
     <div class="refresh-indicator">
       <div class="refresh-dot" id="statusDot"></div>
@@ -302,6 +293,28 @@
 <script>
 const SHEET_ID = '1mJCIz-bDeqJiIxlrLKwahGOH4HSxvSPelLgJJNg4HN4';
 const REFRESH_MS = 3 * 60 * 1000; // 3 minutes
+
+// Auto-assign a consistent color to any status text.
+// Same status always gets the same color ‚Äî no config needed when new statuses are added.
+const STATUS_PALETTE = [
+  '#2563eb', // blue
+  '#dc2626', // red
+  '#16a34a', // green
+  '#ea580c', // orange
+  '#7c3aed', // purple
+  '#0891b2', // cyan
+  '#be185d', // pink
+  '#ca8a04', // amber
+];
+
+function statusColor(status) {
+  if (!status) return '#475569';
+  let hash = 0;
+  for (let i = 0; i < status.length; i++) {
+    hash = Math.imul(31, hash) + status.charCodeAt(i) | 0;
+  }
+  return STATUS_PALETTE[Math.abs(hash) % STATUS_PALETTE.length];
+}
 
 // Use Google Visualization API with JSONP ‚Äî works from local file:// without CORS issues
 // param can be { gid: 0 } or { sheet: 'Production Status' }
@@ -398,7 +411,7 @@ function createCard(order) {
   card.className = 'card' + (order.status && order.status.toLowerCase() === 'completed' ? ' completed' : '');
 
   const statusHTML = order.status
-    ? `<div><span class="status-tag" data-status="${order.status.toLowerCase()}">${order.status}</span></div>`
+    ? `<div><span class="status-tag" style="background:${statusColor(order.status.toLowerCase())}">${order.status}</span></div>`
     : '';
 
   const dateStr = order.targetDate
